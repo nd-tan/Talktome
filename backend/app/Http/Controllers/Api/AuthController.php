@@ -9,6 +9,15 @@ use Illuminate\Support\Facades\Auth;
 use Validator;
 class AuthController extends Controller
 {
+    /**
+     * Create a new AuthController instance.
+     *
+     * @return void
+     */
+    public function __construct()
+    {
+        $this->middleware('auth:api', ['except' => ['login']]);
+    }
 
     /**
      * Login
@@ -16,9 +25,11 @@ class AuthController extends Controller
     public function login(Request $request) {
         $phone = $request['phone'];
         $password = $request['password'];
+
         $credentials = ['phone' => $phone, 'password' => $password];
 
-        if (!$token = auth('api')->attempt($credentials)) {
+        if (!$token = auth()->attempt($credentials)) {
+
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
@@ -27,10 +38,10 @@ class AuthController extends Controller
 
     public function respondWithToken($token) {
         return response()->json([
-            'id' => auth('api')->id(),
-            'name' => auth('api')->user()->name,
+            'id' => auth()->id(),
+            'name' => auth()->user()->name,
             'access_token' => $token,
-            'expires_in' => auth('api')->factory()->getTTL() * 6000,
+            'expires_in' => auth()->factory()->getTTL() * 6000,
         ]);
     }
 
@@ -47,7 +58,7 @@ class AuthController extends Controller
     }
 
     public function refresh() {
-        return $this->createNewToken(auth('api')->refresh());
+        return $this->createNewToken(auth()->refresh());
     }
 
     public function changePassword(Request $request) {
@@ -76,9 +87,10 @@ class AuthController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function register(Request $request)
     {
         $user = new User();
+        $user->name = $request->name;
         $user->phone = $request->phone;
         $user->password = bcrypt($request->password);
         $user->save();
@@ -89,9 +101,9 @@ class AuthController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function getInfoUser(Request $request)
     {
-        $user = User::findOrFail($id);
+        $user = User::where('id', '=', $request->id)->first();
         return response()->json($user, 200);
     }
 
@@ -106,13 +118,13 @@ class AuthController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request)
     {
-        $user = User::where('id', '=', $id)->first();
+        $user = User::where('id', '=', $request->id)->first();
         $user->name = $request->name;
         $user->phone = $request->phone;
         $user->gender = $request->gender;
-        $user->status = $request->status;
+        // $user->status = $request->status;
         $user->email = $request->email;
         $user->image = $request->image;
         $user->save();
